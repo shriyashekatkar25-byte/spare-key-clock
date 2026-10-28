@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spare Key Clock · APM Lab</title>
+<meta name="description" content="How long should an external AI agent's sign-in last? A Monte Carlo composition model weighs re-login friction against stolen-token exposure. APM Lab by Shriya Shekatkar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@500;700&family=DM+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Pixelify+Sans:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* hero: hot-magenta affirmation poster */
+  --mag:#C2268A; --mag-deep:#8E1665; --butter:#FFF3A3;
+  /* cards: spirals + stars painting */
+  --orange:#EE8A3C; --blush:#F6B3C8; --crimson:#A61E3C; --teal:#17607A; --chart:#C9C35A; --sky:#3A8FC8;
+  /* KPI badges: black condensed meme type on white */
+  --ink:#111111; --paper:#FFFFFF;
+  /* sim room: pixel desk + green terminal */
+  --term:#07140C; --term2:#0E2416; --matrix:#39FF6A; --wood:#7A4A2A; --wood2:#5A3420;
+  --bg:#FFF8EE; --text:#1B1420; --muted:#5E5160; --line:#E6D7CC;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "DM Sans",system-ui,sans-serif;overflow-x:hidden}
+a{color:var(--crimson)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+h2{font-family:Oswald,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.01em;font-size:clamp(28px,4.6vw,44px);line-height:1.05;margin:0 0 10px}
+.kicker{font:700 12px/1 "DM Sans";letter-spacing:.18em;text-transform:uppercase;color:var(--crimson);margin:0 0 10px}
+section{padding:64px 0}
+.grain{position:relative;isolation:isolate}
+.grain::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;opacity:.18;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---------- HERO (pin: magenta + butter condensed affirmation) ---------- */
+.hero{background:var(--mag);color:#fff;padding:56px 0 64px;overflow:hidden;position:relative}
+.hero .halftone{position:absolute;inset:0;background-image:radial-gradient(rgba(255,243,163,.22) 1.4px,transparent 1.6px);background-size:12px 12px;-webkit-mask-image:linear-gradient(120deg,transparent 30%,#000 90%);mask-image:linear-gradient(120deg,transparent 30%,#000 90%);pointer-events:none}
+.hero .tag{display:inline-block;background:var(--butter);color:var(--mag-deep);font:700 12px/1 "DM Sans";letter-spacing:.14em;text-transform:uppercase;padding:8px 12px;border-radius:999px;transform:rotate(-2deg)}
+.poster{font-family:Anton,Oswald,sans-serif;color:var(--butter);text-transform:uppercase;font-size:clamp(46px,10.4vw,128px);line-height:.9;letter-spacing:-.005em;margin:22px 0 18px;max-width:1000px}
+.poster .star{display:inline-block;width:.72em;height:.72em;vertical-align:-.04em;margin:0 .04em}
+.poster .star svg{width:100%;height:100%;display:block}
+.hero p.sub{font-size:clamp(17px,2.2vw,20px);max-width:720px;margin:0 0 14px;color:#fff}
+.hero p.sub a{color:var(--butter);font-weight:700}
+.byline{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.byline span{border:2px solid var(--butter);color:var(--butter);border-radius:999px;padding:6px 14px;font-weight:700;font-size:14px}
+.hero-key{position:absolute;right:-30px;top:30px;width:300px;opacity:.95;pointer-events:none}
+@media (max-width:820px){.hero-key{width:170px;right:-50px;top:auto;bottom:-20px;opacity:.5}}
+@media (prefers-reduced-motion:no-preference){.hero-key{animation:swing 6s ease-in-out infinite;transform-origin:70% 10%}@keyframes swing{50%{transform:rotate(6deg)}}}
+
+/* ---------- DECISION CARDS (pin: spirals + stars painting) ---------- */
+.painted{background:var(--blush);background-image:radial-gradient(circle at 12% 18%,rgba(238,138,60,.45),transparent 40%),radial-gradient(circle at 88% 80%,rgba(23,96,122,.22),transparent 45%)}
+.masonry{columns:3 300px;column-gap:18px;margin-top:26px}
+.card{break-inside:avoid;margin:0 0 18px;background:#FFFDF8;border:3px solid var(--ink);border-radius:18px 18px 18px 4px;padding:20px 20px 16px;position:relative;box-shadow:6px 6px 0 var(--crimson)}
+.card h3{font-family:Oswald;font-size:22px;text-transform:uppercase;margin:0 0 8px;color:var(--crimson);line-height:1.1}
+.card p,.card li{font-size:15px;margin:0 0 8px}
+.card ul{padding-left:18px;margin:0}
+.card .spiral{position:absolute;right:-14px;top:-18px;width:54px;height:54px}
+.card.orange{background:#FFE7D2}.card.teal{background:#E2F0F3;box-shadow:6px 6px 0 var(--teal)}.card.teal h3{color:var(--teal)}
+.card.chart{background:#F4F1CF;box-shadow:6px 6px 0 var(--orange)}
+.pincap{display:block;margin-top:10px;font:600 12px/1.3 "DM Sans";color:var(--muted)}
+.guard{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:14px}
+.guard b{font-family:Oswald;font-weight:500}
+
+/* ---------- SIM ROOM (pin: pixel desk + green terminal) ---------- */
+.room{background:#2A1B12;color:#F3EBDD;background-image:linear-gradient(90deg,rgba(255,255,255,.03) 50%,transparent 50%),linear-gradient(rgba(255,255,255,.03) 50%,transparent 50%);background-size:8px 8px}
+.room h2{color:#fff;font-family:"Pixelify Sans",Oswald,sans-serif}
+.room .kicker{color:var(--matrix)}
+.room p{color:#E9DFD0}
+.desk{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px;margin-top:22px}
+@media (max-width:900px){.desk{grid-template-columns:minmax(0,1fr)}}
+.monitor{background:#1A1A1A;border:8px solid #2B2B2B;outline:4px solid #000;padding:10px;image-rendering:pixelated;position:relative}
+.monitor::after{content:"";display:block;height:14px;width:30%;margin:10px auto 0;background:#2B2B2B;box-shadow:0 4px 0 #000}
+.screen{background:var(--term);position:relative;overflow:hidden}
+.screen canvas{display:block;width:100%;height:auto;image-rendering:pixelated}
+.screen .scan{position:absolute;inset:0;background:repeating-linear-gradient(transparent 0 2px,rgba(0,0,0,.25) 2px 3px);pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font:500 13px "Pixelify Sans",monospace;color:#CFE9D6;margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+.controls{background:var(--wood);border:4px solid #000;box-shadow:inset 0 -8px 0 var(--wood2),inset 0 8px 0 #8E5A36;padding:18px;font-family:"DM Sans"}
+.controls h3{font:700 18px "Pixelify Sans";margin:0 0 10px;color:#FFE9C7}
+.ttl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.ttl button,.btn{font:700 15px "Pixelify Sans",monospace;background:#F3EBDD;color:#1B1420;border:3px solid #000;box-shadow:3px 3px 0 #000;padding:8px 4px;cursor:pointer;min-height:40px}
+.ttl button[aria-pressed="true"]{background:var(--matrix);color:#00230C}
+.ttl button:focus-visible,.btn:focus-visible,input:focus-visible{outline:3px solid var(--butter);outline-offset:2px}
+.field{margin:10px 0}
+.field label{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:#FFF4E2;font-weight:600}
+.field output{font-family:"JetBrains Mono";color:var(--butter)}
+input[type=range]{width:100%;accent-color:var(--matrix)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.toggle{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:#FFF4E2;margin-top:8px}
+.toggle input{width:20px;height:20px;accent-color:var(--matrix);flex:none;margin-top:2px}
+.seed{font:600 14px "JetBrains Mono";width:90px;padding:7px;border:3px solid #000;background:#F3EBDD}
+
+/* ---------- KPI BADGES (pin: black condensed justified meme type) ---------- */
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:22px}
+@media (max-width:700px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.kpi{padding:10px}.kpi .v{font-size:32px}}
+.kpi{background:var(--paper);color:var(--ink);padding:14px 16px 12px;border:2px solid #000;position:relative}
+.kpi .k{font:500 13px/1.2 Oswald;text-transform:lowercase;letter-spacing:.02em;display:flex;justify-content:space-between;gap:6px}
+.kpi .v{font:700 clamp(38px,5vw,50px)/1 Oswald;letter-spacing:-.01em;margin:6px 0 4px;text-align:justify}
+.kpi .t{font:500 12.5px/1.3 "DM Sans";color:#3D3D3D}
+.kpi .pill{flex:none;align-self:flex-start;font:700 11px/1 "DM Sans";padding:4px 7px;border-radius:999px;white-space:nowrap}
+.pass{background:#D9F7E2;color:#0B5A26}.fail{background:#FFE0E6;color:#8A0F2A}.na{background:#EEE;color:#444}
+
+.frontier{background:var(--term2);border:4px solid #000;margin-top:22px;padding:12px}
+.frontier h3{font:700 16px "Pixelify Sans";color:var(--matrix);margin:0 0 6px}
+.frontier svg{width:100%;height:auto;display:block}
+.tbl{width:100%;border-collapse:collapse;font:13px "JetBrains Mono";color:#DDEFE2;margin-top:10px}
+.tbl th,.tbl td{border-bottom:1px solid #24402D;padding:6px 6px;text-align:right}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl tr.sel td{background:#163222;color:#fff}
+.tblwrap{overflow-x:auto}
+
+/* ---------- MEMO ---------- */
+.memo{background:#fff;border:3px solid var(--ink);padding:26px;border-radius:4px;position:relative;box-shadow:10px 10px 0 var(--mag)}
+.memo .stamp{position:absolute;right:18px;top:-18px;background:var(--butter);color:var(--mag-deep);font:700 13px Oswald;text-transform:uppercase;padding:8px 12px;border:2px solid var(--ink);transform:rotate(3deg)}
+.memo dt{font:700 13px Oswald;text-transform:uppercase;letter-spacing:.08em;color:var(--crimson);margin-top:14px}
+.memo dd{margin:2px 0 0}
+.vp{margin-top:18px;background:var(--mag);color:#fff;padding:14px 16px;font-weight:700;border-radius:2px}
+.vp span{color:var(--butter)}
+
+/* ---------- MATH ---------- */
+.math{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:20px}
+.step{background:#FFFDF8;border:2px solid var(--ink);border-radius:14px;padding:18px}
+.step .n{font:700 34px/1 Anton;color:var(--orange)}
+.step h3{font:700 18px Oswald;text-transform:uppercase;margin:6px 0}
+.formula{font:14px/1.5 "JetBrains Mono";background:#F4EEE6;border-left:4px solid var(--teal);padding:8px 10px;margin:8px 0;overflow-x:auto;white-space:pre}
+
+/* ---------- CODE ---------- */
+pre.code{background:var(--term);color:#D7F5DF;font:13px/1.55 "JetBrains Mono";padding:16px;border:4px solid #000;overflow-x:auto;margin:10px 0 18px;max-width:100%}
+pre.code .c{color:#7FBF90}
+.codegrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.codegrid{grid-template-columns:minmax(0,1fr)}}
+
+footer{background:var(--ink);color:#EDE6EE;padding:36px 0 40px;font-size:15px}
+footer a{color:var(--butter)}
+footer .credits{font-size:11px;color:#B9AFBB;margin-top:14px;line-height:1.6}
+footer .credits a{color:#D9CFDA}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="hero grain">
+  <div class="halftone" aria-hidden="true"></div>
+  <svg class="hero-key" viewBox="0 0 200 240" aria-hidden="true">
+    <circle cx="140" cy="22" r="14" fill="none" stroke="#FFF3A3" stroke-width="5"/>
+    <path d="M140 36 L128 70" stroke="#FFF3A3" stroke-width="4"/>
+    <g transform="rotate(-18 110 120)">
+      <circle cx="110" cy="96" r="34" fill="#FFF3A3" stroke="#8E1665" stroke-width="5"/>
+      <circle cx="110" cy="96" r="12" fill="#C2268A"/>
+      <rect x="102" y="128" width="16" height="92" rx="4" fill="#FFF3A3" stroke="#8E1665" stroke-width="5"/>
+      <path d="M118 176 h18 v10 h-10 v8 h12 v10 h-20" fill="#FFF3A3" stroke="#8E1665" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="110" cy="96" r="22" fill="none" stroke="#8E1665" stroke-width="2" stroke-dasharray="3 5"/>
+    </g>
+    <g fill="#FFF3A3"><path d="M30 150l6 14 15 1-12 9 4 15-13-8-13 8 4-15-12-9 15-1z"/></g>
+  </svg>
+  <div class="wrap" style="position:relative">
+    <span class="tag">APM Lab · Project · Ch5 Composition</span>
+    <h1 class="poster">The key in my hand stands for <span class="star" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#FFF3A3" d="M12 1l3.2 7 7.6.7-5.8 5 1.8 7.4L12 17.3 5.2 21.1 7 13.7 1.2 8.7 8.8 8z"/></svg></span> trust that knows when to expire</h1>
+    <p class="sub">Mirrors today's launch: <a href="https://docs.databricks.com/aws/en/release-notes/product/2026/october" rel="noopener">default OAuth apps for external AI agents are now generally available</a>, so ChatGPT, Codex, Claude, Claude Code and Cursor can connect to Databricks MCP servers without an account admin creating an OAuth app first.</p>
+    <p class="sub">The hard call that launch creates: <strong>how long should an agent's sign-in stay alive</strong> before the human has to log in again?</p>
+    <div class="byline"><span>Shriya Shekatkar</span><span>UCLA · Stats 102C Monte Carlo Methods</span></div>
+  </div>
+</header>
+
+<main>
+<section class="painted grain" id="decision">
+  <div class="wrap">
+    <p class="kicker">01 · The decision</p>
+    <h2>One default, two ways to get it wrong</h2>
+    <p style="max-width:760px">If the default session is too short, every agent user hits a browser login in the middle of their work, and scheduled agents fail at 3 a.m. If it is too long, a token copied off a laptop stays useful to an attacker for days. Admins can override it, but most will never touch the default, so the default <em>is</em> the policy for most customers.</p>
+    <div class="masonry">
+      <article class="card">
+        <svg class="spiral" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 30m0-3a3 3 0 1 1-3 3a7 7 0 0 1 7-7a11 11 0 0 1 11 11a15 15 0 0 1-15 15a19 19 0 0 1-19-19a23 23 0 0 1 23-23" fill="none" stroke="#A61E3C" stroke-width="5" stroke-linecap="round"/></svg>
+        <h3>Customer problem</h3>
+        <p>A data engineer wires Claude Code to a workspace on Monday. On Tuesday morning the agent stalls on "re-authenticate in browser." Her nightly agent job failed silently. Meanwhile her security team asks: if that token leaks, how long is it good for?</p>
+        <span class="pincap">📌 board: friction vs exposure</span>
+      </article>
+      <article class="card orange">
+        <svg class="spiral" viewBox="0 0 60 60" aria-hidden="true"><path d="M30 4l7 16 17 1-13 11 4 17-15-9-15 9 4-17L6 21l17-1z" fill="#3A8FC8" stroke="#17607A" stroke-width="2"/></svg>
+        <h3>Proposed change</h3>
+        <p>Ship one <strong>idle-session lifetime</strong> (refresh-token TTL) for the default external-agent OAuth apps, with refresh-token rotation so a stolen token dies the moment the real user comes back. Option B: route scheduled agents to machine credentials so humans and robots get different clocks.</p>
+        <span class="pincap">📌 board: rollout options</span>
+      </article>
+      <article class="card teal">
+        <h3>Success metric</h3>
+        <p><strong>Smooth starts:</strong> share of agent sessions that begin without a forced login. Target ≥ 90%.</p>
+        <span class="pincap">📌 board: north star</span>
+      </article>
+      <article class="card chart">
+        <h3>Guardrails</h3>
+        <div class="guard">
+          <span>Human re-logins per user-week</span><b>≤ 1.5</b>
+          <span>Scheduled agent runs broken by expiry</span><b>≤ 0.5%</b>
+          <span>Mean usable window of a leaked token</span><b>≤ 24 h</b>
+          <span>Leaked tokens usable &gt; 72 h</span><b>≤ 5%</b>
+        </div>
+        <span class="pincap">📌 board: do-no-harm</span>
+      </article>
+      <article class="card">
+        <h3>Stakeholders</h3>
+        <ul>
+          <li>Account &amp; workspace admins (own the override)</li>
+          <li>Customer security / CISO teams</li>
+          <li>Agent-heavy data engineers and analysts</li>
+          <li>Identity, MCP and AI gateway engineering</li>
+          <li>Partner teams for the external agent clients</li>
+        </ul>
+        <span class="pincap">📌 board: who signs off</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="room" id="sim">
+  <div class="wrap">
+    <p class="kicker">02 · Simulation room</p>
+    <h2>Two weeks of agent life, simulated</h2>
+    <p style="max-width:760px">Every simulated user is drawn from a mixture of three personas (chat askers, coding agents, scheduled agents). Gaps between their sessions are log-normal, built from Box-Muller normals. Each pixel row is one user's two weeks; a magenta pixel is a session that had to stop for a login.</p>
+    <div class="desk">
+      <div>
+        <div class="monitor"><div class="screen"><canvas id="screen" width="336" height="192" aria-label="Pixel timeline of simulated users' sessions over two weeks"></canvas><div class="scan"></div></div></div>
+        <div class="legend"><span><i style="background:#39FF6A"></i>chat session</span><span><i style="background:#7CD4FF"></i>coding-agent session</span><span><i style="background:#FFE36B"></i>scheduled run</span><span><i style="background:#FF4FB4"></i>forced login / broken run</span></div>
+      </div>
+      <div class="controls">
+        <h3>&gt; idle session lifetime</h3>
+        <div class="ttl" role="group" aria-label="Session lifetime options" id="ttl"></div>
+        <div class="field"><label for="codeShare">Coding-agent share of users <output id="codeShareO"></output></label><input id="codeShare" type="range" min="10" max="70" step="5" value="35"></div>
+        <div class="field"><label for="autoShare">Scheduled-agent share <output id="autoShareO"></output></label><input id="autoShare" type="range" min="0" max="40" step="5" value="15"></div>
+        <div class="field"><label for="leak">Token leaks per 10k user-weeks <output id="leakO"></output></label><input id="leak" type="range" min="0.5" max="10" step="0.5" value="3"></div>
+        <div class="field"><label for="spread">Habit spread (gap σ multiplier) <output id="spreadO"></output></label><input id="spread" type="range" min="0.6" max="1.6" step="0.1" value="1"></div>
+        <label class="toggle"><input type="checkbox" id="m2m"> <span>Option B: scheduled agents use machine credentials (not the user clock)</span></label>
+        <div class="row"><label for="seed" style="font-size:14px;color:#FFF4E2;font-weight:600">Seed</label><input id="seed" class="seed" type="number" value="102"><button class="btn" id="reroll" type="button">Re-roll</button></div>
+      </div>
+    </div>
+
+    <div class="kpis" id="kpis" aria-live="polite"></div>
+
+    <div class="frontier">
+      <h3>&gt; the frontier: every lifetime option, same seed</h3>
+      <svg id="front" viewBox="0 0 640 260" role="img" aria-label="Scatter of re-logins per week versus mean leaked-token window for each lifetime option"></svg>
+      <div class="tblwrap"><table class="tbl" id="tbl"></table></div>
+    </div>
+  </div>
+</section>
+
+<section id="memo">
+  <div class="wrap">
+    <p class="kicker">03 · Director memo (rewrites itself)</p>
+    <h2>The memo</h2>
+    <div class="memo"><span class="stamp" id="stamp">Draft</span><dl id="memoBody"></dl><div class="vp" id="vp"></div></div>
+  </div>
+</section>
+
+<section class="painted grain" id="math">
+  <div class="wrap">
+    <p class="kicker">04 · The math, from my Monte Carlo course</p>
+    <h2>Composition: build a hard distribution from easy pieces</h2>
+    <p style="max-width:780px">Nobody's login habits follow a textbook distribution. But a population is a <em>mix</em> of simpler groups, and each group's behavior is a <em>transformation</em> or a <em>sum</em> of simple random draws. Composition methods let me sample the messy whole by sampling the clean parts.</p>
+    <div class="math">
+      <div class="step"><div class="n">1</div><h3>Mixture: pick a persona, then sample</h3><p>To draw a user, first roll which persona they are using the weights, then draw their behavior from that persona only. Scheduled agents are themselves a mixture of daily and weekly jobs.</p><div class="formula">f(gap) = 0.50·f_chat + 0.35·f_code + 0.15·f_sched</div></div>
+      <div class="step"><div class="n">2</div><h3>Box-Muller: two uniforms, two normals</h3><p>Turn a pair of uniforms into a radius and an angle, and you get two independent standard normals. Exponentiate a scaled normal and you have a log-normal gap: most gaps short, a few very long.</p><div class="formula">Z = √(−2 ln U₁) · cos(2π U₂)
+gap = median · exp(σ·Z)</div></div>
+      <div class="step"><div class="n">3</div><h3>Convolution: add up the gaps</h3><p>Session times are running sums of gaps, so a user's week is a convolution of many gap draws. Fleet-wide leaks are a sum of rare yes/no events, which is Binomial. Each piece is easy, the sum is what matters.</p><div class="formula">T_k = gap₁ + … + gap_k
+leaks ~ Binomial(users, p)</div></div>
+      <div class="step"><div class="n">4</div><h3>Product read-out</h3><p>A forced login happens when a gap is longer than the lifetime. A leaked token is usable until the earlier of "the lifetime runs out" and "the real user comes back and rotation kills it." Averaging those over draws gives the KPIs.</p><div class="formula">exposure = min(TTL, next gap)</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="real">
+  <div class="wrap">
+    <p class="kicker">05 · How I'd run it on real data</p>
+    <h2>From toy personas to fitted ones</h2>
+    <p style="max-width:780px">Swap my made-up persona parameters for fitted ones: pull real gaps between agent sessions from audit logs, fit a log-normal mixture per client type, then rerun the same simulation. Table names below are illustrative.</p>
+    <div class="codegrid">
+<pre class="code"><span class="c">-- 1. Gaps between sessions per user and agent client</span>
+WITH sessions AS (
+  SELECT user_id, client_app, event_time,
+         LAG(event_time) OVER (
+           PARTITION BY user_id, client_app
+           ORDER BY event_time) AS prev_time
+  FROM main.agent_auth.token_refresh_events
+  WHERE event_date &gt;= current_date() - INTERVAL 28 DAYS
+)
+SELECT client_app,
+       COUNT(*)                                      AS gaps,
+       percentile(gap_h, 0.5)                        AS median_gap_h,
+       stddev(ln(gap_h))                             AS sigma_log,
+       AVG(CASE WHEN gap_h &gt; 24  THEN 1 ELSE 0 END) AS p_over_24h,
+       AVG(CASE WHEN gap_h &gt; 168 THEN 1 ELSE 0 END) AS p_over_7d
+FROM (SELECT *, (unix_timestamp(event_time)
+               - unix_timestamp(prev_time))/3600.0 AS gap_h
+      FROM sessions WHERE prev_time IS NOT NULL)
+GROUP BY client_app;</pre>
+<pre class="code"><span class="c"># 2. Mixture simulation with fitted parameters</span>
+import numpy as np
+rng = np.random.default_rng(102)
+fit = spark.table("main.agent_auth.gap_fits").toPandas()
+
+def simulate(ttl_h, n=200_000):
+    w = fit.share / fit.share.sum()
+    k = rng.choice(len(fit), size=n, p=w)       <span class="c"># mixture</span>
+    z = rng.standard_normal(n)                  <span class="c"># normals</span>
+    gap = fit.median_gap_h.values[k] * np.exp(fit.sigma_log.values[k] * z)
+    return {
+      "relogin_rate": (gap &gt; ttl_h).mean(),
+      "mean_exposure_h": np.minimum(gap, ttl_h).mean(),
+      "p_exposed_72h": (np.minimum(gap, ttl_h) &gt; 72).mean(),
+    }
+
+for ttl in [1, 8, 24, 72, 168, 720]:
+    print(ttl, simulate(ttl))</pre>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Unofficial concept prototype by Shriya Shekatkar. All data is simulated. Not affiliated with any company.</strong></p>
+    <p>Part of <a href="https://shriyashekatkar25-byte.github.io/apm-lab/">APM Lab, the gallery of product-decision prototypes</a>.</p>
+    <p class="credits">Design inspired by:
+      <a href="https://www.pinterest.com/pin/898749669411323757/" rel="noopener">jojosbromide, "the i in my name stands for irreplaceable little angel"</a> ·
+      <a href="https://www.pinterest.com/pin/1000713979721328071/" rel="noopener">kauuva, "Gotta love quirky colours and spirals"</a> ·
+      <a href="https://www.pinterest.com/pin/1050886894322654480/" rel="noopener">yashikahahaha, "oops yaar"</a> ·
+      <a href="https://www.pinterest.com/pin/778208010658854838/" rel="noopener">Ilia Vatti, pixel desk with a green-code monitor</a></p>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const TTLS=[{h:1,l:"1 h"},{h:8,l:"8 h"},{h:24,l:"24 h"},{h:72,l:"3 d"},{h:168,l:"7 d"},{h:720,l:"30 d"}];
+const FLEET=50000, H=336, N=2400;
+const G={relog:1.5, broken:0.5, meanExp:24, p72:5, smooth:90};
+const reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $=id=>document.getElementById(id);
+let state={ttl:24};
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function makeNormal(u){let spare=null;return function(){if(spare!==null){const s=spare;spare=null;return s;}let u1=u();while(u1<=1e-12)u1=u();const u2=u(),r=Math.sqrt(-2*Math.log(u1)),th=2*Math.PI*u2;spare=r*Math.sin(th);return r*Math.cos(th);};}
+
+function params(){
+  const code=+$("codeShare").value/100, auto=+$("autoShare").value/100;
+  const chat=Math.max(0.05,1-code-auto);
+  const s=+$("spread").value;
+  return {w:[chat,code,auto], s, leak:+$("leak").value/10000, m2m:$("m2m").checked, seed:(+$("seed").value|0)||1};
+}
+// persona gap models (hours): median, sigma
+const P=[{m:14,sg:1.1},{m:2.5,sg:1.4}];
+const SCHED=[{p:0.75,m:24,sg:0.08},{p:0.25,m:168,sg:0.05}];
+
+function simulate(pr,ttl,keepRows){
+  const u=mulberry32(pr.seed*7919+13), nz=makeNormal(u);
+  const tot=pr.w[0]+pr.w[1]+pr.w[2], cw=[pr.w[0]/tot,(pr.w[0]+pr.w[1])/tot];
+  let hum={users:0,sess:0,re:0}, sch={sess:0,re:0}, allS=0, allRe=0;
+  let expSum=0,expN=0,exp72=0, rows=[];
+  for(let i=0;i<N;i++){
+    const r=u(); const k=r<cw[0]?0:(r<cw[1]?1:2);   // mixture via inverse CDF on weights
+    let med,sg;
+    if(k<2){med=P[k].m;sg=P[k].sg*pr.s;}
+    else{const c=u()<SCHED[0].p?SCHED[0]:SCHED[1];med=c.m;sg=c.sg*pr.s;}
+    const gap=()=>med*Math.exp(sg*nz());              // Box-Muller -> log-normal
+    let t=-u()*gap(), s=0, re=0, ev=keepRows&&rows.length<64?[]:null;
+    while(true){const g=gap();t+=g;if(t>H)break;if(t<0)continue;s++;const bad=g>ttl;if(bad)re++;if(ev)ev.push([t,bad]);}
+    const counts=!(k===2&&pr.m2m);
+    if(counts){
+      if(k<2){hum.users++;hum.sess+=s;hum.re+=re;}else{sch.sess+=s;sch.re+=re;}
+      allS+=s;allRe+=re;
+      const e=Math.min(ttl,gap()); expSum+=e;expN++; if(e>72)exp72++;
+    }
+    if(ev)rows.push({k,ev});
+  }
+  const weeks=H/168, meanExp=expN?expSum/expN:0;
+  const leaksWk=FLEET*pr.leak;
+  return {ttl,
+    relog: hum.users? hum.re/(hum.users*weeks):0,
+    broken: pr.m2m||sch.sess===0? null : 100*sch.re/sch.sess,
+    smooth: allS?100*(1-allRe/allS):100,
+    smoothSE: allS?100*Math.sqrt((allRe/allS)*(1-allRe/allS)/allS):0,
+    meanExp, p72: expN?100*exp72/expN:0,
+    leaksWk, attackerH: leaksWk*meanExp, rows};
+}
+function checks(m){return {
+  relog:m.relog<=G.relog, broken:m.broken===null?null:m.broken<=G.broken,
+  meanExp:m.meanExp<=G.meanExp, p72:m.p72<=G.p72, smooth:m.smooth>=G.smooth};}
+function passAll(c){return c.relog&&c.broken!==false&&c.meanExp&&c.p72&&c.smooth;}
+function fails(c){return [c.relog,c.broken,c.meanExp,c.p72,c.smooth].filter(x=>x===false).length;}
+function recommend(all){
+  const ok=all.filter(m=>passAll(checks(m)));
+  if(ok.length)return {m:ok[0],clean:true};
+  let best=all[0];for(const m of all){if(fails(checks(m))<fails(checks(best)))best=m;}
+  return {m:best,clean:false};
+}
+const fmt=(x,d=1)=>x===null?"n/a":x.toFixed(d);
+const lbl=h=>TTLS.find(t=>t.h===h).l;
+
+function pill(ok){return ok===null?'<span class="pill na">n/a</span>':ok?'<span class="pill pass">pass</span>':'<span class="pill fail">fail</span>';}
+function renderKPIs(m){
+  const c=checks(m);
+  $("kpis").innerHTML=[
+    ["smooth starts",fmt(m.smooth)+"%","success · target ≥ 90% · ±"+fmt(1.96*m.smoothSE,2)+" pts (95%)",c.smooth],
+    ["re-logins / human / week",fmt(m.relog,2),"guardrail ≤ 1.5",c.relog],
+    ["scheduled runs broken",m.broken===null?"off":fmt(m.broken)+"%",m.broken===null?"Option B: machine credentials":"guardrail ≤ 0.5%",c.broken],
+    ["leaked-token window",fmt(m.meanExp)+" h","mean usable hours · guardrail ≤ 24 h",c.meanExp],
+    ["leaks usable > 72 h",fmt(m.p72)+"%","guardrail ≤ 5%",c.p72],
+    ["attacker-hours / week",Math.round(m.attackerH).toLocaleString(),"fleet of "+FLEET.toLocaleString()+" users · ~"+fmt(m.leaksWk)+" leaks/wk",null]
+  ].map(([k,v,t,ok])=>`<div class="kpi"><div class="k"><span>${k}</span>${ok===null&&k.startsWith("attacker")?"":pill(ok)}</div><div class="v">${v}</div><div class="t">${t}</div></div>`).join("");
+}
+
+function renderFrontier(all){
+  const sv=$("front"), W=640,Hh=260,L=56,R=20,T=16,B=40;
+  const xs=all.map(m=>m.relog), ys=all.map(m=>m.meanExp);
+  const xmax=Math.max(2,...xs)*1.08, ymax=Math.max(30,...ys)*1.1;
+  const X=x=>L+(W-L-R)*Math.log1p(x)/Math.log1p(xmax), Y=y=>Hh-B-(Hh-T-B)*y/ymax;
+  let s=`<rect x="${L}" y="${Y(G.meanExp)}" width="${X(G.relog)-L}" height="${Hh-B-Y(G.meanExp)}" fill="#39FF6A" opacity=".10"/>`;
+  s+=`<line x1="${X(G.relog)}" x2="${X(G.relog)}" y1="${T}" y2="${Hh-B}" stroke="#39FF6A" stroke-dasharray="4 4" opacity=".6"/>`;
+  s+=`<line x1="${L}" x2="${W-R}" y1="${Y(G.meanExp)}" y2="${Y(G.meanExp)}" stroke="#39FF6A" stroke-dasharray="4 4" opacity=".6"/>`;
+  s+=`<text x="${X(G.relog)-6}" y="${Hh-B-8}" fill="#9FE8B4" font-size="12" text-anchor="end" font-family="JetBrains Mono">guardrail zone</text>`;
+  s+=`<line x1="${L}" x2="${W-R}" y1="${Hh-B}" y2="${Hh-B}" stroke="#4E7A5C"/><line x1="${L}" x2="${L}" y1="${T}" y2="${Hh-B}" stroke="#4E7A5C"/>`;
+  s+=`<text x="${(L+W)/2}" y="${Hh-8}" fill="#CFE9D6" font-size="13" text-anchor="middle" font-family="DM Sans">re-logins per human per week (log scale) →</text>`;
+  s+=`<text x="16" y="${(T+Hh-B)/2}" fill="#CFE9D6" font-size="13" text-anchor="middle" font-family="DM Sans" transform="rotate(-90 16 ${(T+Hh-B)/2})">leaked-token window (h) →</text>`;
+  [0,ymax/2,ymax].forEach(v=>{s+=`<text x="${L-6}" y="${Y(v)+4}" fill="#9FBFA8" font-size="11" text-anchor="end" font-family="JetBrains Mono">${Math.round(v)}</text>`;});
+  const placed=[];
+  for(const m of all){const sel=m.ttl===state.ttl, ok=passAll(checks(m));
+    let lx=X(m.relog)+12, ly=Y(m.meanExp)-10;
+    for(const p of placed){if(Math.abs(p[0]-lx)<44&&Math.abs(p[1]-ly)<16){ly=p[1]+18;}}
+    placed.push([lx,ly]);
+    s+=`<rect x="${X(m.relog)-(sel?9:6)}" y="${Y(m.meanExp)-(sel?9:6)}" width="${sel?18:12}" height="${sel?18:12}" fill="${ok?"#39FF6A":"#FF4FB4"}" stroke="${sel?"#FFF3A3":"#000"}" stroke-width="${sel?3:1}"/>`;
+    s+=`<text x="${lx}" y="${ly}" fill="#fff" font-size="13" font-family="Pixelify Sans">${lbl(m.ttl)}</text>`;}
+  sv.innerHTML=s;
+  $("tbl").innerHTML=`<thead><tr><th>lifetime</th><th>smooth %</th><th>re-log/wk</th><th>broken %</th><th>window h</th><th>&gt;72h %</th><th>verdict</th></tr></thead><tbody>`+
+    all.map(m=>`<tr class="${m.ttl===state.ttl?"sel":""}"><td>${lbl(m.ttl)}</td><td>${fmt(m.smooth)}</td><td>${fmt(m.relog,2)}</td><td>${fmt(m.broken)}</td><td>${fmt(m.meanExp)}</td><td>${fmt(m.p72)}</td><td>${passAll(checks(m))?"PASS":"fail ×"+fails(checks(m))}</td></tr>`).join("")+"</tbody>";
+}
+
+function renderMemo(m,all,pr){
+  const rec=recommend(all), r=rec.m, c=checks(m);
+  let alt=null;
+  if(!rec.clean&&!pr.m2m){const p2=Object.assign({},pr,{m2m:true});const all2=TTLS.map(t=>simulate(p2,t.h,false));const r2=recommend(all2);if(r2.clean)alt=r2.m;}
+  const failsTxt=[];
+  if(!c.relog)failsTxt.push(`humans hit ${fmt(m.relog,2)} logins a week (cap 1.5)`);
+  if(c.broken===false)failsTxt.push(`${fmt(m.broken)}% of scheduled runs break at the expiry edge`);
+  if(!c.meanExp)failsTxt.push(`a leaked token stays usable ${fmt(m.meanExp)} h on average`);
+  if(!c.p72)failsTxt.push(`${fmt(m.p72)}% of leaks stay usable past 3 days`);
+  if(!c.smooth)failsTxt.push(`only ${fmt(m.smooth)}% of sessions start smoothly`);
+  let decision, vp;
+  if(rec.clean){
+    decision=`Ship a <strong>${lbl(r.ttl)}</strong> idle-session lifetime as the default for external-agent OAuth apps${pr.m2m?", with scheduled agents moved to machine credentials (Option B)":""}. It is the shortest option that clears every guardrail on this seed.`;
+    vp=`<span>One sentence:</span> a ${lbl(r.ttl)} default keeps ${fmt(r.smooth)}% of agent sessions login-free while a stolen token dies in about ${fmt(r.meanExp,0)} hours on average.`;
+  } else if(alt){
+    decision=`No single clock works for humans and robots. Ship <strong>${lbl(alt.ttl)}</strong> for people <em>and</em> move scheduled agents to machine credentials (Option B). Without the split, the best single option (${lbl(r.ttl)}) still fails ${fails(checks(r))} guardrail(s).`;
+    vp=`<span>One sentence:</span> give people a ${lbl(alt.ttl)} session and give robots their own credentials, because any single timer either breaks nightly jobs or leaves stolen tokens alive too long.`;
+  } else {
+    decision=`Hold the default at <strong>${lbl(r.ttl)}</strong> (fewest guardrail misses) but do not call it done: it still fails ${fails(checks(r))} guardrail(s). Pair it with shorter-lived scoped tokens before GA messaging.`;
+    vp=`<span>One sentence:</span> no lifetime is safe and smooth under these assumptions, so the fix is narrower token scope, not a cleverer timer.`;
+  }
+  const evid=`At the selected ${lbl(m.ttl)}: ${fmt(m.smooth)}% smooth starts (±${fmt(1.96*m.smoothSE,2)} pts), ${fmt(m.relog,2)} re-logins per human-week, ${m.broken===null?"scheduled agents off the user clock":fmt(m.broken)+"% scheduled runs broken"}, leaked-token window ${fmt(m.meanExp)} h, ${fmt(m.p72)}% of leaks usable past 72 h. ${N.toLocaleString()} simulated users × 2 weeks, seed ${pr.seed}.`;
+  const risks=(failsTxt.length?"Selected option misses: "+failsTxt.join("; ")+". ":"Selected option clears all guardrails. ")+
+    "Persona mix and gap shapes are assumptions; daily jobs that run slightly late sit right on a 24 h boundary, so any lifetime equal to a job cadence is fragile.";
+  const plan=`Ship to 5% of new agent connections for two weeks with the lifetime as a server-side flag. Watch forced-login rate per client app and refresh-token reuse alerts daily. Kill switch: if smooth starts drop below ${G.smooth}% or reuse alerts double, revert to the previous default. Then 25% → 100%, with an admin override and a clear "session expires in" notice in the agent's tool error.`;
+  const next=`Pull 28 days of real refresh gaps per client app, refit the mixture, and rerun this frontier before the GA blog post locks in a number.`;
+  $("memoBody").innerHTML=`<dt>Decision</dt><dd>${decision}</dd><dt>Evidence</dt><dd>${evid}</dd><dt>Risks</dt><dd>${risks}</dd><dt>Rollout plan</dt><dd>${plan}</dd><dt>Next step</dt><dd>${next}</dd>`;
+  $("vp").innerHTML=vp;
+  $("stamp").textContent=rec.clean||alt?"Recommend":"Escalate";
+}
+
+// ---- pixel screen ----
+const cv=$("screen"), ctx=cv.getContext("2d"); let anim=null;
+const COL=["#39FF6A","#7CD4FF","#FFE36B"];
+function drawScreen(rows){
+  if(anim)cancelAnimationFrame(anim);
+  const W=cv.width, Hc=cv.height, rh=3;
+  const paintBase=()=>{ctx.fillStyle="#07140C";ctx.fillRect(0,0,W,Hc);
+    ctx.fillStyle="#0F2A19";for(let d=0;d<=14;d++){const x=Math.round(d*24*W/H);ctx.fillRect(x,0,1,Hc);}
+  };
+  const paintUpTo=col=>{
+    rows.forEach((r,i)=>{const y=i*rh;ctx.fillStyle="#0B2013";ctx.fillRect(0,y,Math.min(col,W),rh-1);
+      for(const [t,bad] of r.ev){const x=Math.floor(t*W/H);if(x>col)break;ctx.fillStyle=bad?"#FF4FB4":COL[r.k];ctx.fillRect(x,y,bad?3:2,rh-1);}});
+  };
+  paintBase();
+  if(reduce){paintUpTo(W);return;}
+  let col=0;const step=()=>{col+=6;paintBase();paintUpTo(col);ctx.fillStyle="#39FF6A";ctx.fillRect(Math.min(col,W-2),0,2,Hc);if(col<W)anim=requestAnimationFrame(step);else paintUpTo(W);};
+  step();
+}
+
+function run(){
+  const pr=params();
+  $("codeShareO").textContent=$("codeShare").value+"%";
+  $("autoShareO").textContent=$("autoShare").value+"%";
+  $("leakO").textContent=(+$("leak").value).toFixed(1);
+  $("spreadO").textContent="×"+(+$("spread").value).toFixed(1);
+  const all=TTLS.map(t=>simulate(pr,t.h,t.h===state.ttl));
+  const m=all.find(x=>x.ttl===state.ttl);
+  renderKPIs(m);renderFrontier(all);renderMemo(m,all,pr);drawScreen(m.rows);
+  document.querySelectorAll("#ttl button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.h===state.ttl)));
+}
+$("ttl").innerHTML=TTLS.map(t=>`<button type="button" data-h="${t.h}" aria-pressed="false">${t.l}</button>`).join("");
+$("ttl").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.ttl=+b.dataset.h;run();});
+["codeShare","autoShare","leak","spread","m2m","seed"].forEach(id=>$(id).addEventListener("input",run));
+$("reroll").addEventListener("click",()=>{$("seed").value=1+Math.floor(Math.random()*9999);run();});
+run();
+})();
+</script>
+</body>
+</html>
